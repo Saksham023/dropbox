@@ -32,3 +32,6 @@ replay_pid*
 /nbdist/
 /.nb-gradle/
 /CloudFare R2/
+
+# Local environment files
+dropbox/.env
