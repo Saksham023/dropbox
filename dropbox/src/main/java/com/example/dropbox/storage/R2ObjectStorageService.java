@@ -8,7 +8,9 @@ import com.example.dropbox.config.StorageProperties;
 
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
 @Service
 public class R2ObjectStorageService implements ObjectStorageService {
@@ -35,5 +37,20 @@ public class R2ObjectStorageService implements ObjectStorageService {
                 .build());
 
         return new PresignedUpload(presignedRequest.url().toString(), presignedRequest.expiration());
+    }
+
+    @Override
+    public PresignedDownload createPresignedDownload(String objectKey) {
+        var getObjectRequest = GetObjectRequest.builder()
+                .bucket(properties.getBucket())
+                .key(objectKey)
+                .build();
+
+        var presignedRequest = s3Presigner.presignGetObject(GetObjectPresignRequest.builder()
+                .getObjectRequest(getObjectRequest)
+                .signatureDuration(Duration.ofMinutes(properties.getPresignedUrlExpiryMinutes()))
+                .build());
+
+        return new PresignedDownload(presignedRequest.url().toString(), presignedRequest.expiration());
     }
 }
