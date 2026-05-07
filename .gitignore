@@ -1,0 +1,33 @@
+# OS noise
+.DS_Store
+
+# Build outputs
+target/
+build/
+*.class
+
+# Logs and crash dumps
+*.log
+hs_err_pid*
+replay_pid*
+
+# Java / IDE metadata
+.idea/
+.vscode/
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache
+*.iml
+*.iws
+*.ipr
+.apt_generated/
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
