@@ -10,6 +10,7 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Configuration;
+import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 @Configuration
@@ -17,18 +18,38 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 public class StorageClientConfig {
 
     @Bean
-    S3Presigner s3Presigner(StorageProperties properties) {
-        var credentials = AwsBasicCredentials.create(properties.getAccessKeyId(), properties.getSecretAccessKey());
-        var endpoint = URI.create("https://" + properties.getAccountId() + ".r2.cloudflarestorage.com");
-
-        return S3Presigner.builder()
-                .endpointOverride(endpoint)
+    S3Client s3Client(StorageProperties properties) {
+        return S3Client.builder()
+                .endpointOverride(r2Endpoint(properties))
                 .region(Region.of("auto"))
-                .credentialsProvider(StaticCredentialsProvider.create(credentials))
-                .serviceConfiguration(S3Configuration.builder()
-                        .pathStyleAccessEnabled(true)
-                        .chunkedEncodingEnabled(false)
-                        .build())
+                .credentialsProvider(credentialsProvider(properties))
+                .serviceConfiguration(s3Configuration())
+                .build();
+    }
+
+    @Bean
+    S3Presigner s3Presigner(StorageProperties properties) {
+        return S3Presigner.builder()
+                .endpointOverride(r2Endpoint(properties))
+                .region(Region.of("auto"))
+                .credentialsProvider(credentialsProvider(properties))
+                .serviceConfiguration(s3Configuration())
+                .build();
+    }
+
+    private StaticCredentialsProvider credentialsProvider(StorageProperties properties) {
+        var credentials = AwsBasicCredentials.create(properties.getAccessKeyId(), properties.getSecretAccessKey());
+        return StaticCredentialsProvider.create(credentials);
+    }
+
+    private URI r2Endpoint(StorageProperties properties) {
+        return URI.create("https://" + properties.getAccountId() + ".r2.cloudflarestorage.com");
+    }
+
+    private S3Configuration s3Configuration() {
+        return S3Configuration.builder()
+                .pathStyleAccessEnabled(true)
+                .chunkedEncodingEnabled(false)
                 .build();
     }
 }

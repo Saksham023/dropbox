@@ -23,22 +23,25 @@
    - `storage_upload_id`
    - `chunk_size`
    - `total_chunks`
+   - `uploaded_chunks = 0`
    - `status = INITIATED`
 5. Backend returns presigned URLs for parts.
 6. Client uploads parts directly to object storage.
-7. Client calls the resume endpoint when needed.
-8. Backend calls `ListParts`, computes missing parts, and returns resume info.
-9. Client uploads only missing parts.
-10. Client calls complete.
-11. Backend completes the multipart upload in storage.
-12. Backend marks `upload_sessions = COMPLETED` and `files = READY`.
+7. After each successful part upload, the client records the part number, ETag, and size with the backend.
+8. Client calls the resume endpoint when needed.
+9. Backend reads `upload_parts`, computes missing parts, and returns fresh presigned URLs.
+10. Client uploads only missing parts.
+11. Client calls complete.
+12. Backend completes the multipart upload in storage.
+13. Backend marks `upload_sessions = COMPLETED` and `files = READY`.
 
 ## Resume Strategy
 
-- No backend call is made after every chunk.
-- Resume is driven by a file-scoped upload session endpoint such as `POST /files/:fileId/upload-session/resume`.
-- Backend uses `ListParts` from storage to determine which part numbers already exist.
+- The backend records each successfully uploaded chunk in `upload_parts`.
+- Resume is driven by `GET /files/:fileId/upload-session?ownerId=...`.
+- Backend uses `upload_parts` to determine which part numbers already exist.
 - Frontend re-uploads only the missing part numbers.
+- The object storage bucket CORS rules must expose the `ETag` response header for browser uploads.
 
 ## APIs
 
@@ -61,7 +64,25 @@ Response:
 - `total_chunks`
 - presigned part upload data
 
-### `POST /files/:fileId/upload-session/resume`
+### `POST /files/:fileId/upload-session/parts`
+
+Records one successfully uploaded part.
+
+Request:
+
+- `ownerId`
+- `uploadSessionId`
+- `partNumber`
+- `etag`
+- `size`
+
+Response:
+
+- `uploadedChunks`
+- `totalChunks`
+- current upload session status
+
+### `GET /files/:fileId/upload-session?ownerId=...`
 
 Returns current multipart progress.
 
@@ -79,16 +100,22 @@ Completes the multipart upload.
 
 Request:
 
-- ordered list of `part_number` and `etag`
+- `ownerId`
+- `uploadSessionId`
 
 Response:
 
-- file metadata
+- file id
 - final status
 
 ### `POST /files/:fileId/upload-session/abort`
 
 Aborts the multipart upload and marks the session failed or aborted.
+
+Request:
+
+- `ownerId`
+- `uploadSessionId`
 
 ## Key Rules
 

@@ -20,7 +20,7 @@ export default function FileList({ files, onOpenFolder }) {
               ) : file.downloadUrl ? (
                 <a href={file.downloadUrl} target="_blank" rel="noreferrer">Download</a>
               ) : (
-                <span>(download endpoint pending)</span>
+                <span>Not ready</span>
               )}
             </li>
           ))}

@@ -2,7 +2,7 @@ const API_BASE_URL = 'http://localhost:8080'
 
 export async function loginUser({ email, password }) {
   const payload = { email, password }
-  console.log('[AUTH] Login request payload:', payload)
+  console.log('[AUTH] Login request payload:', { email, password: '********' })
 
   const response = await fetch(`${API_BASE_URL}/users/login`, {
     method: 'POST',
