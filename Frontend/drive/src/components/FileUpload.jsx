@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { uploadFile } from '../services/uploadService'
+import { uploadFile } from '../services/fileService'
 
 export default function FileUpload({ ownerId, parentId, onFileUploaded }) {
   const [selectedFile, setSelectedFile] = useState(null)

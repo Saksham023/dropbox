@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.dropbox.dto.CreateFolderRequest;
 import com.example.dropbox.dto.CreateFolderResponse;
 import com.example.dropbox.dto.FileListItemResponse;
+import com.example.dropbox.dto.InitiateUploadRequest;
+import com.example.dropbox.dto.InitiateUploadResponse;
 import com.example.dropbox.service.FileService;
 
 @RestController
@@ -35,5 +37,10 @@ public class FileController {
     @PostMapping("/folders")
     public CreateFolderResponse createFolder(@RequestBody CreateFolderRequest request) {
         return fileService.createFolder(request);
+    }
+
+    @PostMapping
+    public InitiateUploadResponse initiateUpload(@RequestBody InitiateUploadRequest request) {
+        return fileService.initiateUpload(request);
     }
 }

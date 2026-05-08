@@ -36,13 +36,13 @@
 ## Resume Strategy
 
 - No backend call is made after every chunk.
-- Resume is driven by `POST /uploads/:id/resume`.
+- Resume is driven by a file-scoped upload session endpoint such as `POST /files/:fileId/upload-session/resume`.
 - Backend uses `ListParts` from storage to determine which part numbers already exist.
 - Frontend re-uploads only the missing part numbers.
 
 ## APIs
 
-### `POST /uploads`
+### `POST /files`
 
 Creates the file record and multipart upload session.
 
@@ -61,7 +61,7 @@ Response:
 - `total_chunks`
 - presigned part upload data
 
-### `POST /uploads/:id/resume`
+### `POST /files/:fileId/upload-session/resume`
 
 Returns current multipart progress.
 
@@ -73,7 +73,7 @@ Response:
 - `missing_parts`
 - optional presigned URLs for missing parts
 
-### `POST /uploads/:id/complete`
+### `POST /files/:fileId/upload-session/complete`
 
 Completes the multipart upload.
 
@@ -86,7 +86,7 @@ Response:
 - file metadata
 - final status
 
-### `POST /uploads/:id/abort`
+### `POST /files/:fileId/upload-session/abort`
 
 Aborts the multipart upload and marks the session failed or aborted.
 

@@ -11,6 +11,8 @@ import org.springframework.util.StringUtils;
 import com.example.dropbox.dto.CreateFolderRequest;
 import com.example.dropbox.dto.CreateFolderResponse;
 import com.example.dropbox.dto.FileListItemResponse;
+import com.example.dropbox.dto.InitiateUploadRequest;
+import com.example.dropbox.dto.InitiateUploadResponse;
 import com.example.dropbox.entity.File;
 import com.example.dropbox.enums.FileStatus;
 import com.example.dropbox.enums.FileType;
@@ -87,16 +89,7 @@ public class FileServiceImpl implements FileService {
 
         var owner = userRepository.findById(request.ownerId())
                 .orElseThrow(() -> new IllegalArgumentException("Owner not found: " + request.ownerId()));
-
-        File parent = null;
-        if (request.parentId() != null) {
-            parent = fileRepository.findByIdAndOwner_Id(request.parentId(), request.ownerId())
-                    .orElseThrow(() -> new IllegalArgumentException("Parent folder not found: " + request.parentId()));
-
-            if (parent.getType() != FileType.FOLDER) {
-                throw new IllegalArgumentException("parentId must reference a folder");
-            }
-        }
+        File parent = resolveParentFolder(request.ownerId(), request.parentId());
 
         var now = LocalDateTime.now();
         var folder = new File();
@@ -124,5 +117,70 @@ public class FileServiceImpl implements FileService {
                 folder.getSize(),
                 folder.getCreatedAt(),
                 folder.getUpdatedAt());
+    }
+
+    @Override
+    @Transactional
+    public InitiateUploadResponse initiateUpload(InitiateUploadRequest request) {
+        validateUploadRequest(request);
+
+        var owner = userRepository.findById(request.ownerId())
+                .orElseThrow(() -> new IllegalArgumentException("Owner not found: " + request.ownerId()));
+        File parent = resolveParentFolder(request.ownerId(), request.parentId());
+
+        UUID fileId = UuidCreator.getTimeOrderedEpoch();
+        String objectKey = "users/" + owner.getId() + "/files/" + fileId + "/original";
+        LocalDateTime now = LocalDateTime.now();
+
+        var file = new File();
+        file.setId(fileId);
+        file.setOwner(owner);
+        file.setParent(parent);
+        file.setName(request.name().trim());
+        file.setType(FileType.FILE);
+        file.setMimeType(request.mimeType());
+        file.setObjectKey(objectKey);
+        file.setSize(request.size());
+        file.setStatus(FileStatus.UPLOADING);
+        file.setCreatedAt(now);
+        file.setUpdatedAt(now);
+
+        fileRepository.save(file);
+
+        var presigned = objectStorageService.createPresignedUpload(objectKey, request.mimeType());
+        return new InitiateUploadResponse(fileId, objectKey, presigned.url(), presigned.expiresAt());
+    }
+
+    private File resolveParentFolder(UUID ownerId, UUID parentId) {
+        if (parentId == null) {
+            return null;
+        }
+
+        var parent = fileRepository.findByIdAndOwner_Id(parentId, ownerId)
+                .orElseThrow(() -> new IllegalArgumentException("Parent folder not found: " + parentId));
+
+        if (parent.getType() != FileType.FOLDER) {
+            throw new IllegalArgumentException("parentId must reference a folder");
+        }
+
+        return parent;
+    }
+
+    private static void validateUploadRequest(InitiateUploadRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("request body is required");
+        }
+        if (request.ownerId() == null) {
+            throw new IllegalArgumentException("ownerId is required");
+        }
+        if (!StringUtils.hasText(request.name())) {
+            throw new IllegalArgumentException("name is required");
+        }
+        if (!StringUtils.hasText(request.mimeType())) {
+            throw new IllegalArgumentException("mimeType is required");
+        }
+        if (request.size() <= 0L) {
+            throw new IllegalArgumentException("size must be positive");
+        }
     }
 }
